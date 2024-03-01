@@ -8,6 +8,8 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.Button
 import androidx.compose.material3.ElevatedButton
 import androidx.compose.material3.MaterialTheme
@@ -16,7 +18,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -64,8 +66,12 @@ fun OnboardingPreview() {
 
 @Composable
 fun MyApp(modifier: Modifier = Modifier) {
-
-    var shouldShowOnboarding by remember { mutableStateOf(true) }
+    // remember 함수는 컴포저블이 컴포지션에 유지되는 동안에만 작동
+    // 기기를 회전하면 전체 활동이 다시 시작되므로 모든 상태가 손실
+    // 이 현상은 구성이 변경되거나 프로세스가 중단될 때도 발생
+    // => rememberSaveable 사용
+    // 구성 변경(예: 회전)과 프로세스 중단에도 각 상태를 저장
+    var shouldShowOnboarding by rememberSaveable { mutableStateOf(true) }
 
     Surface(modifier) {
         if (shouldShowOnboarding) {
@@ -79,10 +85,13 @@ fun MyApp(modifier: Modifier = Modifier) {
 @Composable
 private fun Greetings(
     modifier: Modifier = Modifier,
-    names: List<String> = listOf("World", "Compose")
+    names: List<String> = List(1000) { "$it" }
 ) {
-    Column(modifier = modifier.padding(vertical = 4.dp)) {
-        for (name in names) {
+    // LazyColumn : 스크롤이 가능한 열을 표시, 화면에 보이는 항목만 렌더링하므로 항목이 많은 목록을 렌더링할 때 성능이 향상
+    //              하위 요소를 재활용하지 않음
+    //              => 컴포저블을 방출하는 것은 Android Views를 인스턴스화하는 것보다 상대적으로 비용이 적게 들므로 스크롤 할 때 새 컴포저블을 방출하고 계속 성능을 유지
+    LazyColumn(modifier = modifier.padding(vertical = 4.dp)) {
+        items(items = names) { name ->
             Greeting(name = name)
         }
     }
@@ -90,7 +99,7 @@ private fun Greetings(
 
 @Composable
 fun Greeting(name: String, modifier: Modifier = Modifier) {
-    var expanded by remember { mutableStateOf(false) }
+    var expanded by rememberSaveable { mutableStateOf(false) }
     val extraPadding = if (expanded) 48.dp else 0.dp
 
     Surface(
